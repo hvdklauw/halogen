@@ -1,20 +1,60 @@
 
 
-class Attr(object):
+class Type(object):
 
+    def serialize(self, value):
+        return value
+
+    def deserialize(self, value):
+        return value
+
+
+class Accessor(object):
     def __init__(self, getter=None, setter=None):
-        self.name = None
         self.getter = getter
         self.setter = setter
 
-    def serialize(self, value):
+    def get(self, value):
+        assert self.getter is not None, "Getter accessor is not specified."
         if callable(self.getter):
             return self.getter(value)
-        attr = self.getter or self.name
-        if isinstance(value, dict):
-            return value[attr]
-        else:
-            return getattr(value, attr)
+
+        assert isinstance(self.getter, basestring), "Accessor must be a function or a dot-separated string."
+
+        for attr in self.getter.split("."):
+            if isinstance(value, dict):
+                value = value[attr]
+            else:
+                value = getattr(value, attr)
+        return value
+
+    def __repr__(self):
+        return "<{0} getter='{1}', setter='{1}>".format(
+            self.__class__.__name__,
+            self.getter,
+            self.setter,
+        )
+
+
+class Attr(object):
+    default_type = Type()
+
+    def __init__(self, attr_type=None, attr=None):
+        self.attr_type = attr_type or self.default_type
+        self.name = None
+        self.attr = attr
+
+    @property
+    def accessor(self):
+        attr = self.attr or self.name
+
+        if isinstance(attr, Accessor):
+            return attr
+
+        return Accessor(getter=attr)
+
+    def serialize(self, value):
+        return self.accessor.get(value)
 
     def __repr__(self):
         return "<{0} '{1}'>".format(
@@ -65,9 +105,10 @@ class _SchemaType(type):
 
         for name, value in clsattrs.items():
             if isinstance(value, Attr):
+                # Collect the attribute and set it's name.
                 delattr(cls, name)
-                value.name = name
                 cls.__class_attrs__.append(value)
+                value.name = name
 
         cls.__attrs__ = []
         for base in reversed(cls.__mro__):
