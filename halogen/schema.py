@@ -1,12 +1,5 @@
 
-
-class Type(object):
-
-    def serialize(self, value):
-        return value
-
-    def deserialize(self, value):
-        return value
+from . import types
 
 
 class Accessor(object):
@@ -37,10 +30,9 @@ class Accessor(object):
 
 
 class Attr(object):
-    default_type = Type()
 
     def __init__(self, attr_type=None, attr=None):
-        self.attr_type = attr_type or self.default_type
+        self.attr_type = attr_type or types.Type
         self.name = None
         self.attr = attr
 
@@ -54,7 +46,7 @@ class Attr(object):
         return Accessor(getter=attr)
 
     def serialize(self, value):
-        return self.accessor.get(value)
+        return self.attr_type.serialize(self.accessor.get(value))
 
     def __repr__(self):
         return "<{0} '{1}'>".format(
@@ -77,15 +69,12 @@ class Embedded(Attr):
 
     compartment = "_embedded"
 
-    def __init__(self, schema, *args, **kwargs):
-        super(Embedded, self).__init__(*args, **kwargs)
-        self.schema = schema
-
+    # TODO: need implementation for case when we need only link from objects.
     def serialize(self, value):
-        return [self.schema.serialize(val) for val in super(Embedded, self).serialize(value)]
+        return super(Embedded, self).serialize(value)
 
 
-class _Schema(object):
+class _Schema(types.Type):
 
     @classmethod
     def serialize(cls, value):
