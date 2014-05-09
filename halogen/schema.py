@@ -1,5 +1,6 @@
 
 from . import types
+from . import exceptions
 
 
 class Accessor(object):
@@ -21,6 +22,25 @@ class Accessor(object):
                 value = getattr(value, attr)
         return value
 
+    def set(self, result, value):
+        assert self.setter is not None, "Setter accessor is not specified."
+        if callable(self.setter):
+            return self.setter(value)
+
+        assert isinstance(self.setter, basestring), "Accessor must be a function or a dot-separated string."
+
+        def setdefault(result, attr, value):
+            if isinstance(result, dict):
+                result.setdefault(attr, value)
+            else:
+                setattr(result, attr, value)
+            return value
+
+        path = self.setter.split(".")
+        for attr in path[:-1]:
+            result = setdefault(result, attr, {})
+        setdefault(result, path[-1], value)
+
     def __repr__(self):
         return "<{0} getter='{1}', setter='{1}>".format(
             self.__class__.__name__,
@@ -37,16 +57,26 @@ class Attr(object):
         self.attr = attr
 
     @property
+    def compartment(self):
+        return None
+
+    @property
     def accessor(self):
         attr = self.attr or self.name
 
         if isinstance(attr, Accessor):
             return attr
 
-        return Accessor(getter=attr)
+        return Accessor(getter=attr, setter=attr)
 
     def serialize(self, value):
         return self.attr_type.serialize(self.accessor.get(value))
+
+    def deserialize(self, value):
+        compartment = value
+        if self.compartment is not None:
+            compartment = value[self.compartment]
+        return self.attr_type.deserialize(compartment[self.name])
 
     def __repr__(self):
         return "<{0} '{1}'>".format(
@@ -57,7 +87,9 @@ class Attr(object):
 
 class Link(Attr):
 
-    compartment = "_links"
+    @property
+    def compartment(self):
+        return "_links"
 
     def serialize(self, value):
         link = {"href": super(Link, self).serialize(value)}
@@ -67,7 +99,9 @@ class Link(Attr):
 
 class Embedded(Attr):
 
-    compartment = "_embedded"
+    @property
+    def compartment(self):
+        return "_embedded"
 
     # TODO: need implementation for case when we need only link from objects.
     def serialize(self, value):
@@ -81,11 +115,25 @@ class _Schema(types.Type):
         result = {}
         for attr in cls.__attrs__:
             compartment = result
-            compartment_name = getattr(attr, "compartment", None)
-            if compartment_name is not None:
-                compartment = result.setdefault(compartment_name, {})
+            if attr.compartment is not None:
+                compartment = result.setdefault(attr.compartment, {})
             compartment[attr.name] = attr.serialize(value)
         return result
+
+    @classmethod
+    def deserialize(cls, value, result):
+        errors = []
+
+        cleaned_data = []
+        [(attr, attr.deserialize(value)) for attr in cls.__attrs__]
+        for attr in cls.__attrs__:
+            try:
+                cleaned_data.append((attr, attr.deserialize(value)))
+            except exceptions.ValidationError as e:
+                errors.append(e)
+                # TODO: record an error
+        for attr, cleaned_value in cleaned_data:
+            attr.accessor.set(result, cleaned_value)
 
 
 class _SchemaType(type):
