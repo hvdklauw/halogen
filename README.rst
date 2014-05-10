@@ -53,6 +53,8 @@ or to XML for the hal+xml content type.
 Deserialization
 ---------------
 
+In order to collect all potential validation errors before the assigning the attributes.
+
 
 .. code-block:: python
 
@@ -73,12 +75,16 @@ Deserialization
 	deserialized = Spell.deserialize(hal)
 
 
+The deserialized data will look like this:
+
 .. code-block:: python
 
-	deserialized = {
+	{
 		"self": "abracadabra",
 		"name": "Abra Cadabra",
 	}
+
+And when the `apply` method is called on the deserialized data:
 
 .. code-block:: python
 
