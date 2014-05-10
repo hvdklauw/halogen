@@ -150,10 +150,11 @@ class _Schema(types.Type):
         return result
 
     @classmethod
-    def deserialize(cls, value):
+    def deserialize(cls, value, output=None):
         """Deserialize input.
 
         :param value: Dict of already loaded json which will be deserialized by schema attributes.
+        :param output: If present, the output object will be updated instead of returning the deserialized data.
 
         :returns: Dict of deserialized value for attributes. Where key is name of schema's attribute and value is
         deserialized value from value dict.
@@ -169,12 +170,11 @@ class _Schema(types.Type):
 
         if errors:
             raise exceptions.ValidationError(errors)
-        return result
 
-    @classmethod
-    def apply(cls, value, result):
+        if output is None:
+            return result
         for attr in cls.__attrs__:
-            attr.accessor.set(result, value[attr.name])
+            attr.accessor.set(output, result[attr.name])
 
 
 class _SchemaType(type):
