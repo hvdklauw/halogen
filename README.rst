@@ -53,7 +53,8 @@ or to XML for the hal+xml content type.
 Deserialization
 ---------------
 
-In order to collect all potential validation errors before the assigning the attributes.
+The HAL data can be deserialized into the output object. In case there are validation errors
+they will be collected and the ValidationError thrown.
 
 
 .. code-block:: python
@@ -72,7 +73,8 @@ In order to collect all potential validation errors before the assigning the att
         self = halogen.Link(URI("spells"), attr="uid")
         name = halogen.Attr()
 
-    deserialized = Spell.deserialize(hal)
+    spell = {}
+    Spell.deserialize(hal, output=spell)
 
 
 The deserialized data will look like this:
@@ -80,24 +82,19 @@ The deserialized data will look like this:
 .. code-block:: python
 
     {
-        "self": "abracadabra",
-        "name": "Abra Cadabra",
-    }
-
-And when the `apply` method is called on the deserialized data:
-
-.. code-block:: python
-
-    spell = {}
-    Spell.apply(deserialized, spell)
-
-
-The deserialized values will be mapped to the resulting object using setter acessors of
-the schema attributes.
-
-.. code-block:: python
-
-    {
         "uid": "abracadabra",
         "name": "Abra Cadabra",
     }
+
+Error handling
+--------------
+
+The errors will be related to the attributes.
+
+.. code-block:: python
+
+    try:
+        Spell.deserialize(hal, output=spell)
+    except halogen.ValidationError as e;
+        print e.as_dict()
+
