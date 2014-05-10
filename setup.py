@@ -1,43 +1,42 @@
 #!/usr/bin/env python
-import os
 import sys
+from os.path import abspath, dirname, join
 
 from setuptools import setup
 from setuptools.command.test import test as TestCommand
 
 
-version = "0.0.1"
+class ToxTestCommand(TestCommand):
+    """Test command which runs tox under the hood."""
 
-
-class Tox(TestCommand):
     def finalize_options(self):
+        """Add options to the test runner (tox)."""
         TestCommand.finalize_options(self)
         self.test_args = ['--recreate']
         self.test_suite = True
 
     def run_tests(self):
+        """Invoke the test runner (tox)."""
         #import here, cause outside the eggs aren't loaded
         import detox.main
         errno = detox.main.main(self.test_args)
         sys.exit(errno)
 
+long_description = []
 
-dirname = os.path.dirname(__file__)
-
-long_description = (
-    open(os.path.join(dirname, 'README.md')).read() + "\n" +
-    open(os.path.join(dirname, 'CHANGES.md')).read()
-)
+for text_file in ['README.rst', 'CHANGES.rst']:
+    with open(join(dirname(abspath(__file__)), text_file), 'r') as f:
+        long_description.append(f.read())
 
 setup(
     name="halogen",
     description="Python HAL generation/parsing library",
-    long_description=long_description,
+    long_description='\n'.join(long_description),
     author="Oleg Pidsadnyi",
     license="MIT license",
     author_email="oleg.podsadny@gmail.com",
     url="https://github.com/olegpidsadnyi/pytest-bdd",
-    version=version,
+    version="0.0.1",
     classifiers=[
         "Development Status :: 6 - Mature",
         "Intended Audience :: Developers",
@@ -51,9 +50,7 @@ setup(
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 3"
     ] + [("Programming Language :: Python :: %s" % x) for x in "2.6 2.7 3.0 3.1 3.2 3.3".split()],
-    cmdclass={'test': Tox},
-    install_requires=[
-    ],
-    tests_require=["detox"],
+    cmdclass={'test': ToxTestCommand},
     packages=["halogen"],
+    tests_require=["detox"],
 )

@@ -114,7 +114,7 @@ class Link(Attr):
 
     def serialize(self, value):
         link = {"href": super(Link, self).serialize(value)}
-        #TODO: title, name, templated etc
+        # TODO: title, name, templated etc
         return link
 
 
