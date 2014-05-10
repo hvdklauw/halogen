@@ -158,7 +158,7 @@ class _Schema(types.Type):
             try:
                 result[attr.name] = attr.deserialize(value)
             except exceptions.ValidationError as e:
-                e.attr_name = attr.name
+                e.attr = attr.name
                 errors.append(e)
 
         if errors:
