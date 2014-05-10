@@ -17,29 +17,6 @@ def nested_data():
 
 
 @pytest.fixture
-def broken_nested_data():
-    return {
-        "person": {
-            "name": "hello",
-            "surname": "bye"
-        },
-        "is_friend": True,
-        "price": {"currency": "EUR", "amount": "wrong_amount"}
-    }
-
-
-@pytest.fixture
-def broken_nested_error():
-    return {
-        "attr": "<root>",
-        "errors": [{
-            "attr": "price",
-            "errors": [{"type": "InvalidOperation", "error": "Invalid literal for Decimal: 'wrong_amount'"}],
-        }]
-    }
-
-
-@pytest.fixture
 def nested_schema():
     class Person(halogen.Schema):
         name = halogen.Attr()

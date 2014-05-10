@@ -1,6 +1,5 @@
 """Halogen exceptions."""
 
-import collections
 import json
 
 
@@ -9,7 +8,7 @@ class ValidationError(Exception):
 
     def __init__(self, errors, attr=None):
         self.attr = attr
-        if isinstance(errors, collections.Iterable):
+        if isinstance(errors, list):
             self.errors = errors
         else:
             self.errors = [errors]
@@ -18,7 +17,6 @@ class ValidationError(Exception):
         """Return a dictionary representation of the error, with the following keys:
         - attr: Attribute which contains the error, or "<root>" if it refers to the schema root.
         - errors: A list of dictionary representations of the errors.
-
         """
         def exception_to_dict(e):
             try:

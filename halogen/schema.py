@@ -64,10 +64,11 @@ class Accessor(object):
 class Attr(object):
     """Schema attribute."""
 
-    def __init__(self, attr_type=None, attr=None):
+    def __init__(self, attr_type=None, attr=None, required=True):
         self.attr_type = attr_type or types.Type
         self.name = None
         self.attr = attr
+        self.required = required
 
     @property
     def compartment(self):
@@ -96,7 +97,12 @@ class Attr(object):
         compartment = value
         if self.compartment is not None:
             compartment = value[self.compartment]
-        return self.attr_type.deserialize(compartment[self.name])
+        if self.name in compartment:
+            return self.attr_type.deserialize(compartment[self.name])
+        elif self.required:
+            raise exceptions.ValidationError("missing attribute", self.name)
+        else:
+            return None
 
     def __repr__(self):
         return "<{0} '{1}'>".format(
@@ -144,10 +150,11 @@ class _Schema(types.Type):
         return result
 
     @classmethod
-    def deserialize(cls, value):
+    def deserialize(cls, value, output=None):
         """Deserialize input.
 
         :param value: Dict of already loaded json which will be deserialized by schema attributes.
+        :param output: If present, the output object will be updated instead of returning the deserialized data.
 
         :returns: Dict of deserialized value for attributes. Where key is name of schema's attribute and value is
         deserialized value from value dict.
@@ -163,12 +170,11 @@ class _Schema(types.Type):
 
         if errors:
             raise exceptions.ValidationError(errors)
-        return result
 
-    @classmethod
-    def apply(cls, value, result):
+        if output is None:
+            return result
         for attr in cls.__attrs__:
-            attr.accessor.set(result, value[attr.name])
+            attr.accessor.set(output, result[attr.name])
 
 
 class _SchemaType(type):
