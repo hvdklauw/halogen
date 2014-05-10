@@ -1,4 +1,3 @@
-
 from . import types
 from . import exceptions
 
@@ -76,7 +75,7 @@ class Attr(object):
         compartment = value
         if self.compartment is not None:
             compartment = value[self.compartment]
-        return self.attr_type.deserialize(compartment[self.name])
+        return self.attr_type.deserialize(compartment[self.name]) 
 
     def __repr__(self):
         return "<{0} '{1}'>".format(
@@ -121,23 +120,24 @@ class _Schema(types.Type):
         return result
 
     @classmethod
-    def deserialize(cls, value, result):
+    def deserialize(cls, value):
         errors = []
-
-        cleaned_data = []
-        [(attr, attr.deserialize(value)) for attr in cls.__attrs__]
+        result = {}
         for attr in cls.__attrs__:
             try:
-                cleaned_data.append((attr, attr.deserialize(value)))
+                result[attr.name] = attr.deserialize(value)
             except exceptions.ValidationError as e:
+                e.attr_name = attr.name
                 errors.append(e)
-                # TODO: record an error
+
         if errors:
             raise exceptions.ValidationError(errors)
+        return result
 
-        for attr, cleaned_value in cleaned_data:
-            attr.accessor.set(result, cleaned_value)
-
+    @classmethod
+    def apply(cls, value, result):
+        for attr in cls.__attrs__:
+            attr.accessor.set(result, value[attr.name])
 
 class _SchemaType(type):
     def __init__(cls, name, bases, clsattrs):
