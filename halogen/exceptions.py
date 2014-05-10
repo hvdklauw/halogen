@@ -1,13 +1,34 @@
 import collections
+import json
 
 
 class ValidationError(Exception):
     def __init__(self, errors, attr=None):
         self.attr = attr
-        if not isinstance(errors, collections.Iterable):
+        if isinstance(errors, collections.Iterable):
             self.errors = errors
         else:
             self.errors = [errors]
 
+    def to_dict(self):
+        """Return a dictionary representation of the error, with the following keys:
+        - attr: Attribute which contains the error, or "<root>" if it refers to the schema root.
+        - errors: A list of dictionary representations of the errors.
+
+        """
+        def exception_to_dict(e):
+            try:
+                return e.to_dict()
+            except AttributeError:
+                return {
+                    "type": e.__class__.__name__,
+                    "error": str(e)
+                }
+
+        return {
+            "attr": self.attr if self.attr is not None else "<root>",
+            "errors": [exception_to_dict(e) for e in self.errors]
+        }
+
     def __str__(self):
-        return '{}: {}'.format(self.attr, str([e.name for e in self.errors]))
+        return json.dumps(self.to_dict())
