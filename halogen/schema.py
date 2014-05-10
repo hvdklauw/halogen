@@ -132,6 +132,9 @@ class _Schema(types.Type):
             except exceptions.ValidationError as e:
                 errors.append(e)
                 # TODO: record an error
+        if errors:
+            raise exceptions.ValidationError(errors)
+
         for attr, cleaned_value in cleaned_data:
             attr.accessor.set(result, cleaned_value)
 
