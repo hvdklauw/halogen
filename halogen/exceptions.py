@@ -1,11 +1,10 @@
-import collections
 import json
 
 
 class ValidationError(Exception):
     def __init__(self, errors, attr=None):
         self.attr = attr
-        if isinstance(errors, collections.Iterable):
+        if isinstance(errors, list):
             self.errors = errors
         else:
             self.errors = [errors]

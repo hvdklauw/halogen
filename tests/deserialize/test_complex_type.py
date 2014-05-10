@@ -16,7 +16,7 @@ def test_nested(nested_data, nested_schema):
     assert deserialized == expected
 
 
-def test_broken_nested(nested_schema):
+def test_invalid_value(nested_schema):
     """Test errors reported for a broken nested type."""
     data = {
         "person": {
@@ -38,3 +38,13 @@ def test_broken_nested(nested_schema):
     with pytest.raises(halogen.exceptions.ValidationError) as e:
         nested_schema.deserialize(data)
     assert e.value.to_dict() == errors
+
+
+def test_missing_attribute(nested_schema):
+    data = {
+        "is_friend": True,
+        "price": {"currency": "EUR", "amount": "wrong_amount"}
+    }
+    # TODO improve
+    with pytest.raises(halogen.exceptions.ValidationError):
+        nested_schema.deserialize(data)
