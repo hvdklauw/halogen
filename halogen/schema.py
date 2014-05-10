@@ -64,10 +64,11 @@ class Accessor(object):
 class Attr(object):
     """Schema attribute."""
 
-    def __init__(self, attr_type=None, attr=None):
+    def __init__(self, attr_type=None, attr=None, required=True):
         self.attr_type = attr_type or types.Type
         self.name = None
         self.attr = attr
+        self.required = required
 
     @property
     def compartment(self):
@@ -96,7 +97,12 @@ class Attr(object):
         compartment = value
         if self.compartment is not None:
             compartment = value[self.compartment]
-        return self.attr_type.deserialize(compartment[self.name])
+        if self.name in compartment:
+            return self.attr_type.deserialize(compartment[self.name])
+        elif self.required:
+            raise exceptions.ValidationError("missing attribute", self.name)
+        else:
+            return None
 
     def __repr__(self):
         return "<{0} '{1}'>".format(
