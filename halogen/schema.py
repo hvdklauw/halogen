@@ -151,6 +151,14 @@ class _Schema(types.Type):
 
     @classmethod
     def deserialize(cls, value, output=None):
+        """Deserialize input.
+
+        :param value: Dict of already loaded json which will be deserialized by schema attributes.
+        :param output: If present, the output object will be updated instead of returning the deserialized data.
+
+        :returns: Dict of deserialized value for attributes. Where key is name of schema's attribute and value is
+        deserialized value from value dict.
+        """
         errors = []
         result = {}
         for attr in cls.__attrs__:
