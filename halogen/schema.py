@@ -1,13 +1,22 @@
+"""Halogen schema basics types."""
+
 from . import types
 from . import exceptions
 
 
 class Accessor(object):
+    """Gives possiblity to write your own setter and getter for your attribute."""
+
     def __init__(self, getter=None, setter=None):
         self.getter = getter
         self.setter = setter
 
     def get(self, value):
+        """Get attribute from value.
+        :param value: object from which we should get attribute in self.getter
+
+        :returns: value of object's attribute
+        """
         assert self.getter is not None, "Getter accessor is not specified."
         if callable(self.getter):
             return self.getter(value)
@@ -22,6 +31,10 @@ class Accessor(object):
         return value
 
     def set(self, result, value):
+        """Set value for result's attribute.
+        :param result: Dict of values. Where keys are names of attributes and values are deserialized values from input.
+        :param value: Deserialized value from input.
+        """
         assert self.setter is not None, "Setter accessor is not specified."
         if callable(self.setter):
             return self.setter(value)
@@ -49,6 +62,7 @@ class Accessor(object):
 
 
 class Attr(object):
+    """Schema attribute."""
 
     def __init__(self, attr_type=None, attr=None):
         self.attr_type = attr_type or types.Type
@@ -57,10 +71,15 @@ class Attr(object):
 
     @property
     def compartment(self):
+        """Place in which attribute will be placed. For example: _links or _embedded"""
         return None
 
     @property
     def accessor(self):
+        """Get accessor with getter and setter of attribute.
+
+        :returns: instance of Accessor class.
+        """
         attr = self.attr or self.name
 
         if isinstance(attr, Accessor):
@@ -69,13 +88,15 @@ class Attr(object):
         return Accessor(getter=attr, setter=attr)
 
     def serialize(self, value):
+        """Serialize type of attribute."""
         return self.attr_type.serialize(self.accessor.get(value))
 
     def deserialize(self, value):
+        """Deserialize type of attribute."""
         compartment = value
         if self.compartment is not None:
             compartment = value[self.compartment]
-        return self.attr_type.deserialize(compartment[self.name]) 
+        return self.attr_type.deserialize(compartment[self.name])
 
     def __repr__(self):
         return "<{0} '{1}'>".format(
@@ -85,6 +106,7 @@ class Attr(object):
 
 
 class Link(Attr):
+    """Link attribute of schema."""
 
     @property
     def compartment(self):
@@ -97,6 +119,7 @@ class Link(Attr):
 
 
 class Embedded(Attr):
+    """Embedded attribute of schema."""
 
     @property
     def compartment(self):
@@ -108,6 +131,7 @@ class Embedded(Attr):
 
 
 class _Schema(types.Type):
+    """Type for creating schema."""
 
     @classmethod
     def serialize(cls, value):
@@ -121,6 +145,13 @@ class _Schema(types.Type):
 
     @classmethod
     def deserialize(cls, value):
+        """Deserialize input.
+
+        :param value: Dict of already loaded json which will be deserialized by schema attributes.
+
+        :returns: Dict of deserialized value for attributes. Where key is name of schema's attribute and value is
+        deserialized value from value dict.
+        """
         errors = []
         result = {}
         for attr in cls.__attrs__:
@@ -138,6 +169,7 @@ class _Schema(types.Type):
     def apply(cls, value, result):
         for attr in cls.__attrs__:
             attr.accessor.set(result, value[attr.name])
+
 
 class _SchemaType(type):
     def __init__(cls, name, bases, clsattrs):
