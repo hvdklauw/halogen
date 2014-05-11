@@ -46,8 +46,67 @@ or to XML for the hal+xml content type.
             "self": {"href": "spells/abracadabra"}
         },
         "name": "Abra Cadabra"
-        // The extra wasn't in the schema and this way ignored
+        // The extra wasn't in the schema and this way will be ignored
     }
+
+
+Embedded objects
+~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+    import halogen
+
+    books = [
+        {
+            "id": "1",
+            "name": "Game of Thrones",
+        },
+        {
+            "id": "2",
+            "name": "Harry Potter",
+        }
+    ]
+
+    class Book(halogen.Schema):
+
+        self = halogen.Link(URI("books"), attr="id")
+        name = halogen.Attr()
+
+    class BooksFeed(halogen.Schema):
+        self = halogen.Link(URI("books"), attr=lambda value: "/")
+        books = halogen.Embedded(halogen.types.List(Book))
+
+    feed = Spell.serialize(books)
+
+
+The serialized data will look like this:
+
+.. code-block:: json
+
+    {
+        "_links": {
+            "self": {"href": "/books/"}
+        },
+        "_embedded": {
+            "books": [
+                {
+                    "_links": {
+                        "self": {"href": "/books/1"}
+                    },
+                    "name": "Game of Thrones"
+
+                },
+                {
+                    "_links": {
+                        "self": {"href": "/books/2"}
+                    },
+                    "name": "Harry Potter"
+                }
+            ]
+        }
+    }
+
 
 
 Deserialization
