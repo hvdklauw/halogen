@@ -13,7 +13,7 @@ halogen
 
 Python HAL generation/parsing library.
 
-Schemas can be defined to specify attributes to be exposed and a structure 
+Schemas can be defined to specify attributes to be exposed and a structure
 
 Serialization
 -------------
@@ -156,4 +156,3 @@ The errors will be related to the attributes.
         Spell.deserialize(hal, output=spell)
     except halogen.ValidationError as e;
         print e.as_dict()
-
