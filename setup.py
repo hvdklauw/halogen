@@ -35,7 +35,7 @@ setup(
     author="Oleg Pidsadnyi",
     license="MIT license",
     author_email="oleg.podsadny@gmail.com",
-    url="https://github.com/olegpidsadnyi/pytest-bdd",
+    url="https://github.com/olegpidsadnyi/halogen",
     version="0.0.1",
     classifiers=[
         "Development Status :: 6 - Mature",
@@ -52,5 +52,5 @@ setup(
     ] + [("Programming Language :: Python :: %s" % x) for x in "2.6 2.7 3.0 3.1 3.2 3.3".split()],
     cmdclass={'test': ToxTestCommand},
     packages=["halogen"],
-    tests_require=["detox"],
+    tests_require=["detox", "mock"],
 )
