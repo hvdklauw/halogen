@@ -5,17 +5,18 @@ from . import exceptions
 
 
 class Accessor(object):
-    """Gives possiblity to write your own setter and getter for your attribute."""
+
+    """Object that incapsulates the getter and the setter of the attribute."""
 
     def __init__(self, getter=None, setter=None):
         self.getter = getter
         self.setter = setter
 
     def get(self, value):
-        """Get attribute from value.
-        :param value: object from which we should get attribute in self.getter
+        """Get an attribute from a value.
 
-        :returns: value of object's attribute
+        :param value: Object to get the attribute value from.
+        :return: Value of object's attribute.
         """
         assert self.getter is not None, "Getter accessor is not specified."
         if callable(self.getter):
@@ -32,8 +33,9 @@ class Accessor(object):
 
     def set(self, result, value):
         """Set value for result's attribute.
-        :param result: Dict of values. Where keys are names of attributes and values are deserialized values from input.
-        :param value: Deserialized value from input.
+
+        :param result: Result object or dict to assign the attribute to.
+        :param value: Value to be assigned.
         """
         assert self.setter is not None, "Setter accessor is not specified."
         if callable(self.setter):
@@ -54,6 +56,7 @@ class Accessor(object):
         setdefault(result, path[-1], value)
 
     def __repr__(self):
+        """Accessor representation."""
         return "<{0} getter='{1}', setter='{1}>".format(
             self.__class__.__name__,
             self.getter,
@@ -62,9 +65,16 @@ class Accessor(object):
 
 
 class Attr(object):
+
     """Schema attribute."""
 
     def __init__(self, attr_type=None, attr=None, required=True):
+        """Attribute constructor.
+
+        :param attr_type: Type or Schema that does the type conversion of the attribute.
+        :param attr: Attribute name, dot-separated attribute path or an `Accessor` instance.
+        :param required: Is attribute required to be present.
+        """
         self.attr_type = attr_type or types.Type
         self.name = None
         self.attr = attr
@@ -72,14 +82,14 @@ class Attr(object):
 
     @property
     def compartment(self):
-        """Place in which attribute will be placed. For example: _links or _embedded"""
+        """A key this attribute will be placed into (for example: _links or _embedded)."""
         return None
 
     @property
     def accessor(self):
-        """Get accessor with getter and setter of attribute.
+        """Get an attribute's accessor with the getter and the setter.
 
-        :returns: instance of Accessor class.
+        :return: `Accessor` instance.
         """
         attr = self.attr or self.name
 
@@ -89,11 +99,29 @@ class Attr(object):
         return Accessor(getter=attr, setter=attr)
 
     def serialize(self, value):
-        """Serialize type of attribute."""
+        """Serialize the attribute of the input data.
+
+        Gets the attribute value with accessor and converts it using the
+        type serialization. Schema will place this serialized value into
+        corresponding compartment of the HAL structure with the name of the
+        attribute as a key.
+
+        :param value: Value to get the attribute value from.
+        :return: Serialized attribute value.
+        """
         return self.attr_type.serialize(self.accessor.get(value))
 
     def deserialize(self, value):
-        """Deserialize type of attribute."""
+        """Deserialize the attribute from a HAL structure.
+
+        Get the value from the HAL structure from the attribute's compartment
+        using the attribute's name as a key, convert it using the attribute's
+        type. Schema will either return it to the parent schema or will assign
+        to the output value if specified using the attribute's accessor setter.
+
+        :param value: HAL structure to get the value from.
+        :return: Deserialized attribute value.
+        """
         compartment = value
         if self.compartment is not None:
             compartment = value[self.compartment]
@@ -105,6 +133,7 @@ class Attr(object):
             return None
 
     def __repr__(self):
+        """Attribute representation."""
         return "<{0} '{1}'>".format(
             self.__class__.__name__,
             self.name,
@@ -112,10 +141,12 @@ class Attr(object):
 
 
 class Link(Attr):
+
     """Link attribute of schema."""
 
     @property
     def compartment(self):
+        """Links are placed in the _links."""
         return "_links"
 
     def serialize(self, value):
@@ -125,10 +156,12 @@ class Link(Attr):
 
 
 class Embedded(Attr):
+
     """Embedded attribute of schema."""
 
     @property
     def compartment(self):
+        """Embedded objects are placed in the _objects."""
         return "_embedded"
 
     # TODO: need implementation for case when we need only link from objects.
@@ -137,6 +170,7 @@ class Embedded(Attr):
 
 
 class _Schema(types.Type):
+
     """Type for creating schema."""
 
     @classmethod
@@ -151,7 +185,7 @@ class _Schema(types.Type):
 
     @classmethod
     def deserialize(cls, value, output=None):
-        """Deserialize input.
+        """Deserialize the HAL structure into output value.
 
         :param value: Dict of already loaded json which will be deserialized by schema attributes.
         :param output: If present, the output object will be updated instead of returning the deserialized data.
