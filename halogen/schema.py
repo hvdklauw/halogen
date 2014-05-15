@@ -202,6 +202,10 @@ class Embedded(Attr):
 
     """Embedded attribute of schema."""
 
+    def __init__(self, attr_type=None, attr=None, namespace=None):
+        super(Embedded, self).__init__(attr_type, attr)
+        self.namespace = namespace
+
     @property
     def compartment(self):
         """Embedded objects are placed in the _objects."""
