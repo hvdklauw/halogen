@@ -70,7 +70,9 @@ def test_invalid_value():
 
     with pytest.raises(halogen.exceptions.ValidationError) as e:
         NestedSchema.deserialize(data)
-    assert e.value.to_dict() == errors
+    errors = e.value.to_dict()
+    assert errors["attr"] == "<root>"
+    assert errors["errors"][0]["attr"] == "price"
 
 
 def test_missing_attribute():

@@ -1,7 +1,15 @@
 """Halogen schema basics types."""
 
+import sys
 from . import types
 from . import exceptions
+
+PY2 = sys.version_info[0] == 2
+
+if not PY2:
+    string_types = (str,)
+else:
+    string_types = (str, unicode)
 
 
 class Accessor(object):
@@ -22,7 +30,7 @@ class Accessor(object):
         if callable(self.getter):
             return self.getter(value)
 
-        assert isinstance(self.getter, basestring), "Accessor must be a function or a dot-separated string."
+        assert isinstance(self.getter, string_types), "Accessor must be a function or a dot-separated string."
 
         for attr in self.getter.split("."):
             if isinstance(value, dict):
@@ -41,7 +49,7 @@ class Accessor(object):
         if callable(self.setter):
             return self.setter(value)
 
-        assert isinstance(self.setter, basestring), "Accessor must be a function or a dot-separated string."
+        assert isinstance(self.setter, string_types), "Accessor must be a function or a dot-separated string."
 
         def setdefault(result, attr, value):
             if isinstance(result, dict):
