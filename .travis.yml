@@ -1,0 +1,14 @@
+language: python
+# command to install dependencies
+install:
+  - pip install python-coveralls
+  - pip install -U virtualenv
+# # command to run tests
+script: python setup.py test
+after_success:
+  - pip install -r requirements-testing.txt -e .
+  - py.test --cov=pytest_bdd --cov-report=term-missing tests
+  - coveralls
+notifications:
+    email:
+        - oleg.podsadny@gmail.com
