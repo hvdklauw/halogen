@@ -82,8 +82,13 @@ class Attr(object):
 
     @property
     def compartment(self):
-        """A key this attribute will be placed into (for example: _links or _embedded)."""
+        """The key of the compartment this attribute will be placed into (for example: _links or _embedded)."""
         return None
+
+    @property
+    def key(self):
+        """The key of the this attribute will be placed into (within it's compartment)."""
+        return self.name
 
     @property
     def accessor(self):
@@ -121,16 +126,15 @@ class Attr(object):
 
         :param value: HAL structure to get the value from.
         :return: Deserialized attribute value.
+        :raises: ValidationError.
         """
         compartment = value
         if self.compartment is not None:
             compartment = value[self.compartment]
         if self.name in compartment:
-            return self.attr_type.deserialize(compartment[self.name])
+            return self.attr_type.deserialize(compartment[self.key])
         elif self.required:
-            raise exceptions.ValidationError("missing attribute", self.name)
-        else:
-            return None
+            raise exceptions.ValidationError("Missing attribute.", self.key)
 
     def __repr__(self):
         """Attribute representation."""
@@ -144,15 +148,46 @@ class Link(Attr):
 
     """Link attribute of schema."""
 
+    def __init__(self, attr_type=None, attr=None, title_attr=None, name_attr=None, method=None, namespace=None):
+        """Link constructor.
+
+        :param namespace: Link namespace prefix (e.g. "<namespace>:<name>").
+        :param attr_type: Type of the href attribute.
+        :param attr: Attr of the href attribute.
+        :param method: HTTP method attribute.
+        """
+        def method_attr(value):
+            if method is None:
+                raise AttributeError
+            return method
+
+        class LinkSchema(Schema):
+
+            """Link schema."""
+
+            href = Attr(attr_type, attr=attr, required=True)
+            name = Attr(attr=name_attr, required=False)
+            title = Attr(attr=title_attr, required=False)
+            method = Attr(attr=method_attr, required=False)
+
+        super(Link, self).__init__(LinkSchema, attr=lambda value: value)
+        self.namespace = namespace
+
     @property
     def compartment(self):
         """Links are placed in the _links."""
         return "_links"
 
-    def serialize(self, value):
-        link = {"href": super(Link, self).serialize(value)}
-        # TODO: title, name, templated etc
-        return link
+    @property
+    def key(self):
+        """Links support namespaces."""
+        if self.namespace is None:
+            return self.name
+        return ":".join(self.namespace, self.name)
+
+    def deserialize(self, value):
+        """Links don't support deserialization."""
+        raise NotImplementedError
 
 
 class Embedded(Attr):
@@ -163,6 +198,13 @@ class Embedded(Attr):
     def compartment(self):
         """Embedded objects are placed in the _objects."""
         return "_embedded"
+
+    @property
+    def key(self):
+        """Embedded supports namespaces."""
+        if self.namespace is None:
+            return self.name
+        return ":".join(self.namespace, self.name)
 
     # TODO: need implementation for case when we need only link from objects.
     def serialize(self, value):
@@ -180,12 +222,17 @@ class _Schema(types.Type):
             compartment = result
             if attr.compartment is not None:
                 compartment = result.setdefault(attr.compartment, {})
-            compartment[attr.name] = attr.serialize(value)
+            try:
+                compartment[attr.key] = attr.serialize(value)
+            except (AttributeError, KeyError):
+                if attr.required:
+                    raise
+
         return result
 
     @classmethod
     def deserialize(cls, value, output=None):
-        """Deserialize the HAL structure into output value.
+        """Deserialize the HAL structure into the output value.
 
         :param value: Dict of already loaded json which will be deserialized by schema attributes.
         :param output: If present, the output object will be updated instead of returning the deserialized data.
@@ -198,6 +245,9 @@ class _Schema(types.Type):
         for attr in cls.__attrs__:
             try:
                 result[attr.name] = attr.deserialize(value)
+            except NotImplementedError:
+                # Links don't support deserialization
+                continue
             except exceptions.ValidationError as e:
                 e.attr = attr.name
                 errors.append(e)

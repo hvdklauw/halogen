@@ -36,7 +36,7 @@ setup(
     license="MIT license",
     author_email="oleg.podsadny@gmail.com",
     url="https://github.com/olegpidsadnyi/halogen",
-    version="0.0.2",
+    version="0.0.3",
     classifiers=[
         "Development Status :: 6 - Mature",
         "Intended Audience :: Developers",
