@@ -156,27 +156,25 @@ class Link(Attr):
 
     """Link attribute of schema."""
 
-    def __init__(self, attr_type=None, attr=None, title_attr=None, name_attr=None, method=None, namespace=None):
+    def __init__(self, attr_type=None, attr=None, title_attr=None, name_attr=None, http_method=None, namespace=None):
         """Link constructor.
 
         :param namespace: Link namespace prefix (e.g. "<namespace>:<name>").
         :param attr_type: Type of the href attribute.
         :param attr: Attr of the href attribute.
-        :param method: HTTP method attribute.
+        :param http_method: HTTP method attribute.
         """
-        def method_attr(value):
-            if method is None:
-                raise AttributeError
-            return method
-
         class LinkSchema(Schema):
 
             """Link schema."""
 
-            href = Attr(attr_type, attr=attr, required=True)
-            name = Attr(attr=name_attr, required=False)
-            title = Attr(attr=title_attr, required=False)
-            method = Attr(attr=method_attr, required=False)
+            href = Attr(attr_type, attr=attr)
+            if name_attr:
+                name = Attr(attr=name_attr)
+            if title_attr:
+                title = Attr(attr=title_attr)
+            if http_method:
+                method = Attr(attr=lambda value: http_method)
 
         super(Link, self).__init__(LinkSchema, attr=lambda value: value)
         self.namespace = namespace
