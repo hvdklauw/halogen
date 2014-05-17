@@ -189,7 +189,7 @@ class Link(Attr):
         """Links support namespaces."""
         if self.namespace is None:
             return self.name
-        return ":".join(self.namespace, self.name)
+        return ":".join((self.namespace, self.name))
 
     def deserialize(self, value):
         """Links don't support deserialization."""
