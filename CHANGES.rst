@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.0.3
+-----
+
+* Support curies
+
 
 0.0.2
 -----

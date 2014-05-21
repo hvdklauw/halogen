@@ -1,6 +1,7 @@
 """Halogen schema basics types."""
 
 import sys
+
 from . import types
 from . import exceptions
 
@@ -193,6 +194,47 @@ class Link(Attr):
 
     def deserialize(self, value):
         """Links don't support deserialization."""
+        raise NotImplementedError
+
+
+class Curie(object):
+
+    """Curie object."""
+
+    def __init__(self, name, href, templated=None):
+        self.name = name
+        self.href = href
+        if templated is not None:
+            self.templated = templated
+
+
+class Curies(Attr):
+
+    """Curies attribute of schema."""
+
+    def __init__(self, curies):
+        """Curie constructor."""
+
+        class CurieSchema(Schema):
+
+            """Curie schema."""
+
+            href = Attr()
+            name = Attr()
+            templated = Attr(required=False)
+
+        super(Curies, self).__init__(
+            attr_type=types.List(CurieSchema),
+            attr=lambda value: curies,
+        )
+
+    @property
+    def compartment(self):
+        """Curies are placed in the _links."""
+        return "_links"
+
+    def deserialize(self, value):
+        """Curies don't support deserialization."""
         raise NotImplementedError
 
 
