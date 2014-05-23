@@ -39,18 +39,37 @@ def test_link_curie():
 
 def test_curies():
 
+    data = {
+        "warehouse": "/test/123",
+    }
+
     class Schema(halogen.Schema):
 
         class Curies(halogen.Curies):
             acme = halogen.Curie(href="/test/123")
 
         curies = Curies()
+        warehouse = halogen.Link(curie=Curies.acme)
 
-    assert Schema.serialize({}) == {
+    assert Schema.serialize(data) == {
         "_links": {
             "curies": [{
                 "name": "acme",
                 "href": "/test/123",
-            }]
+            }],
+            "acme:warehouse": {"href": "/test/123"},
+        }
+    }
+
+
+def test_constant_href():
+
+    class Schema(halogen.Schema):
+
+        warehouse = halogen.Link("/test/123")
+
+    assert Schema.serialize({}) == {
+        "_links": {
+            "warehouse": {"href": "/test/123"},
         }
     }
