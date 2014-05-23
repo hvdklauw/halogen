@@ -1,4 +1,4 @@
-"""Halogen schema basics types."""
+"""Halogen schema primitives."""
 
 import sys
 
@@ -11,6 +11,9 @@ if not PY2:
     string_types = (str,)
 else:
     string_types = (str, unicode)
+
+
+BYPASS = lambda value: value
 
 
 class Accessor(object):
@@ -122,7 +125,7 @@ class Attr(object):
         :param value: Value to get the attribute value from.
         :return: Serialized attribute value.
         """
-        if isinstance(self.attr_type, types.Type) or issubclass(self.attr_type, types.Type):
+        if types.Type.is_type(self.attr_type):
             return self.attr_type.serialize(self.accessor.get(value))
         return self.attr_type
 
@@ -166,9 +169,14 @@ class Link(Attr):
         :param required: Is this link required to be present.
         :param curie: Link namespace prefix (e.g. "<prefix>:<name>") or Curie object.
         """
-        if not attr_type:
+        if not types.Type.is_type(attr_type):
+
+            if attr_type is not None:
+                attr = BYPASS
+
             class LinkSchema(Schema):
-                href = Attr(attr=lambda value: value)
+                href = Attr(attr_type=attr_type, attr=BYPASS)
+
             attr_type = LinkSchema
 
         super(Link, self).__init__(attr_type=attr_type, attr=attr, required=required)

@@ -14,6 +14,13 @@ class Type(object):
         """Desirialization of value."""
         return value
 
+    @classmethod
+    def is_type(cls, value):
+        """Is value instance or subclass of this class."""
+        if isinstance(value, type):
+            return issubclass(value, cls)
+        return isinstance(value, cls)
+
 
 class List(Type):
     """List type for Halogen schema attribute."""
