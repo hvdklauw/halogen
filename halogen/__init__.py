@@ -1,4 +1,4 @@
-from .schema import Schema, Attr, Link, Curie, Curies, Embedded, Accessor
+from .schema import Schema, Attr, Link, Curie, Embedded, Accessor
 from . import types
 
 __all__ = [
@@ -7,7 +7,6 @@ __all__ = [
     "Attr",
     "Link",
     "Curie",
-    "Curies",
     "Embedded",
     "types",
 ]
