@@ -80,12 +80,11 @@ class Attr(object):
     def __init__(self, attr_type=None, attr=None, required=True):
         """Attribute constructor.
 
-        :param attr_type: Type or Schema that does the type conversion of the attribute.
+        :param attr_type: Type, Schema or constant that does the type conversion of the attribute.
         :param attr: Attribute name, dot-separated attribute path or an `Accessor` instance.
         :param required: Is attribute required to be present.
         """
         self.attr_type = attr_type or types.Type
-        self.name = None
         self.attr = attr
         self.required = required
 
@@ -123,7 +122,9 @@ class Attr(object):
         :param value: Value to get the attribute value from.
         :return: Serialized attribute value.
         """
-        return self.attr_type.serialize(self.accessor.get(value))
+        if isinstance(self.attr_type, types.Type) or issubclass(self.attr_type, types.Type):
+            return self.attr_type.serialize(self.accessor.get(value))
+        return self.attr_type
 
     def deserialize(self, value):
         """Deserialize the attribute from a HAL structure.
@@ -155,30 +156,23 @@ class Attr(object):
 
 class Link(Attr):
 
-    """Link attribute of schema."""
+    """Link attribute of a schema."""
 
-    def __init__(self, attr_type=None, attr=None, title_attr=None, name_attr=None, http_method=None, namespace=None):
+    def __init__(self, attr_type=None, attr=None, required=True, curie=None):
         """Link constructor.
 
-        :param namespace: Link namespace prefix (e.g. "<namespace>:<name>").
-        :param attr_type: Type of the href attribute.
-        :param attr: Attr of the href attribute.
-        :param http_method: HTTP method attribute.
+        :param attr_type: Type, Schema or constant that does the type conversion of the attribute.
+        :param attr: Attribute name, dot-separated attribute path or an `Accessor` instance.
+        :param required: Is this link required to be present.
+        :param curie: Link namespace prefix (e.g. "<prefix>:<name>") or Curie object.
         """
-        class LinkSchema(Schema):
+        if not attr_type:
+            class LinkSchema(Schema):
+                href = Attr(attr=lambda value: value)
+            attr_type = LinkSchema
 
-            """Link schema."""
-
-            href = Attr(attr_type, attr=attr)
-            if name_attr:
-                name = Attr(attr=name_attr)
-            if title_attr:
-                title = Attr(attr=title_attr)
-            if http_method:
-                method = Attr(attr=lambda value: http_method)
-
-        super(Link, self).__init__(LinkSchema, attr=lambda value: value)
-        self.namespace = namespace
+        super(Link, self).__init__(attr_type=attr_type, attr=attr, required=required)
+        self.curie = curie
 
     @property
     def compartment(self):
@@ -187,45 +181,95 @@ class Link(Attr):
 
     @property
     def key(self):
-        """Links support namespaces."""
-        if self.namespace is None:
+        """Links support curies."""
+        if self.curie is None:
             return self.name
-        return ":".join((self.namespace, self.name))
+        prefix = self.curie.name if isinstance(self.curie, Curie) else self.curie
+        return ":".join((prefix, self.name))
 
     def deserialize(self, value):
         """Links don't support deserialization."""
         raise NotImplementedError
 
 
+class LinkList(Attr):
+
+    """List of links attribute of a schema."""
+
+    def __init__(self, attr_type=None, attr=None, required=True, curie=None):
+        """LinkList constructor.
+
+        :param attr_type: Type, Schema or constant that does item type conversion of the attribute.
+        :param attr: Attribute name, dot-separated attribute path or an `Accessor` instance.
+        :param required: Is this list of links required to be present.
+        :param curie: Link namespace prefix (e.g. "<prefix>:<name>") or Curie object.
+        """
+        super(Link, self).__init__(attr_type=attr_type, attr=attr, required=required, curie=curie)
+        self.attr_type = types.List()
+
+
 class Curie(object):
 
     """Curie object."""
 
-    def __init__(self, name, href, templated=None):
-        self.name = name
+    def __init__(self, href, templated=None):
+        """Curie constructor.
+
+        :param href: Curie link href value.
+        :param templated: Is this curie link templated.
+        """
         self.href = href
         if templated is not None:
             self.templated = templated
 
 
-class Curies(Attr):
+def _collect_attrs(cls, clsattrs, attr_class, remove=True):
+    """Collect class attributes.
+
+    :param cls: Class to collect the attributes for.
+    :param clsattrs: Class attributes __dict__.
+    :param attr_class: Attribute class.
+    :param remove: Remove the attribute from the class.
+    """
+    cls.__class_attrs__ = []
+
+    for name, value in clsattrs.items():
+        if isinstance(value, attr_class):
+            # Collect the attribute and set it's name.
+            if remove:
+                delattr(cls, name)
+            cls.__class_attrs__.append(value)
+            if not hasattr(value, "name"):
+                value.name = name
+
+    cls.__attrs__ = []
+    for base in reversed(cls.__mro__):
+        cls.__attrs__.extend(getattr(base, "__class_attrs__", []))
+
+
+class _CuriesType(type):
+    def __init__(cls, name, bases, clsattrs):
+        _collect_attrs(cls, clsattrs, Curie, False)
+
+
+class _Curies(Attr):
 
     """Curies attribute of schema."""
 
-    def __init__(self, curies):
-        """Curie constructor."""
+    def __init__(self):
+        """Curies constructor."""
 
         class CurieSchema(Schema):
 
-            """Curie schema."""
+            """Curie item schema."""
 
             href = Attr()
             name = Attr()
             templated = Attr(required=False)
 
-        super(Curies, self).__init__(
+        super(_Curies, self).__init__(
             attr_type=types.List(CurieSchema),
-            attr=lambda value: curies,
+            attr=lambda value: self.__attrs__,
         )
 
     @property
@@ -242,9 +286,9 @@ class Embedded(Attr):
 
     """Embedded attribute of schema."""
 
-    def __init__(self, attr_type=None, attr=None, namespace=None):
+    def __init__(self, attr_type=None, attr=None, curie=None):
         super(Embedded, self).__init__(attr_type, attr)
-        self.namespace = namespace
+        self.curie = curie
 
     @property
     def compartment(self):
@@ -253,12 +297,12 @@ class Embedded(Attr):
 
     @property
     def key(self):
-        """Embedded supports namespaces."""
-        if self.namespace is None:
+        """Embedded supports curies."""
+        if self.curie is None:
             return self.name
-        return ":".join(self.namespace, self.name)
+        prefix = self.curie.name if isinstance(self.curie, Curie) else self.curie
+        return ":".join((prefix, self.name))
 
-    # TODO: need implementation for case when we need only link from objects.
     def serialize(self, value):
         return super(Embedded, self).serialize(value)
 
@@ -266,6 +310,18 @@ class Embedded(Attr):
 class _Schema(types.Type):
 
     """Type for creating schema."""
+
+    def __new__(cls, **kwargs):
+        """Create schema from keyword arguments."""
+        schema = super(_Schema, cls).__new__(cls)
+        schema.__class_attrs__ = []
+        schema.__attrs__ = []
+        for name, attr in kwargs.items():
+            if not hasattr(attr, "name"):
+                attr.name = name
+            schema.__class_attrs__.append(attr)
+            schema.__attrs__.append(attr)
+        return schema
 
     @classmethod
     def serialize(cls, value):
@@ -315,18 +371,8 @@ class _Schema(types.Type):
 
 class _SchemaType(type):
     def __init__(cls, name, bases, clsattrs):
-        cls.__class_attrs__ = []
-
-        for name, value in clsattrs.items():
-            if isinstance(value, Attr):
-                # Collect the attribute and set it's name.
-                delattr(cls, name)
-                cls.__class_attrs__.append(value)
-                value.name = name
-
-        cls.__attrs__ = []
-        for base in reversed(cls.__mro__):
-            cls.__attrs__.extend(getattr(base, "__class_attrs__", []))
+        _collect_attrs(cls, clsattrs, Attr)
 
 
 Schema = _SchemaType("Schema", (_Schema, ), {"__doc__": _Schema.__doc__})
+Curies = _CuriesType("Curies", (_Curies, ), {"__doc__": _Curies.__doc__})

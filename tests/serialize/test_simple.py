@@ -20,15 +20,15 @@ def test_link_simple():
     }
 
 
-def test_link_namespace():
-    """Check that link is serialized with namespace."""
+def test_link_curie():
+    """Check that link is serialized with curie."""
 
     data = {
         "uid": "/test/123",
     }
 
     class Schema(halogen.Schema):
-        self = halogen.Link(attr="uid", namespace="test")
+        self = halogen.Link(attr="uid", curie="test")
 
     assert Schema.serialize(data) == {
         "_links": {
@@ -41,9 +41,10 @@ def test_curies():
 
     class Schema(halogen.Schema):
 
-        curies = halogen.Curies([
-            halogen.Curie(name="acme", href="/test/123")
-        ])
+        class Curies(halogen.Curies):
+            acme = halogen.Curie(href="/test/123")
+
+        curies = Curies()
 
     assert Schema.serialize({}) == {
         "_links": {
