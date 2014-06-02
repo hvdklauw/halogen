@@ -108,6 +108,53 @@ The serialized data will look like this:
     }
 
 
+CURIEs
+~~~~~~
+
+Curies can be declared in the global scope to be reused between schemas.
+
+
+.. code-block:: python
+
+    ACME = halogen.Curie(name="acme", href="/test/123")
+
+    data = {
+        "warehouse": "/test/123",
+    }
+    
+
+    class Schema(halogen.Schema):
+        warehouse = halogen.Link(curie=ACME)
+
+    result = Schema.serialize(data)
+
+
+Curies used in links or embedded will be collected and placed in the _links.curies section. 
+
+.. code-block:: json
+
+    {
+        _links: {
+            curies: [{
+                name: "acme",
+                href: "/test/123"
+            }],
+            "acme:warehouse": {href: /test/123}
+        }
+    }
+
+Constant types
+~~~~~~~~~~~~~~
+
+Sometimes it is convenient to render constants for example in links. In this case
+you can simply specify the constant value instead of the attribute type.
+
+
+.. code-block:: python
+
+    class Schema(halogen.Schema):
+        self = halogen.Link("/test")
+
 
 Deserialization
 ---------------
