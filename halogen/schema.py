@@ -161,15 +161,15 @@ class Link(Attr):
 
     """Link attribute of a schema."""
 
-    def __init__(self, attr_type=None, attr=None, required=True, curie=None, is_templated=None, media_type=None):
+    def __init__(self, attr_type=None, attr=None, required=True, curie=None, templated=None, type=None):
         """Link constructor.
 
         :param attr_type: Type, Schema or constant that does the type conversion of the attribute.
         :param attr: Attribute name, dot-separated attribute path or an `Accessor` instance.
         :param required: Is this link required to be present.
         :param curie: Link namespace prefix (e.g. "<prefix>:<name>") or Curie object.
-        :param is_templated: Is this link templated.
-        :param media_type: Its value is a string used as a hint to indicate the media type expected when dereferencing
+        :param templated: Is this link templated.
+        :param type: Its value is a string used as a hint to indicate the media type expected when dereferencing
                            the target resource.
         """
         if not types.Type.is_type(attr_type):
@@ -177,14 +177,18 @@ class Link(Attr):
             if attr_type is not None:
                 attr = BYPASS
 
+            attrs = {
+                'templated': templated,
+            }
+
             class LinkSchema(Schema):
                 href = Attr(attr_type=attr_type, attr=BYPASS)
 
-                if is_templated is not None:
-                    templated = Attr(attr=lambda value: is_templated)
+                if attrs['templated'] is not None:
+                    templated = Attr(attr=lambda value: templated)
 
-                if media_type is not None:
-                    type = Attr(attr=lambda value: media_type)
+                if type is not None:
+                    type = Attr(attr=lambda value: type)
 
             attr_type = LinkSchema
 
@@ -228,22 +232,22 @@ class Curie(object):
 
     """Curie object."""
 
-    def __init__(self, name, href, is_templated=None, media_type=None):
+    def __init__(self, name, href, templated=None, type=None):
         """Curie constructor.
 
         :param href: Curie link href value.
-        :param is_templated: Is this curie link templated.
-        :param media_type: Its value is a string used as a hint to indicate the media type expected when dereferencing
+        :param templated: Is this curie link templated.
+        :param type: Its value is a string used as a hint to indicate the media type expected when dereferencing
                            the target resource.
         """
         self.name = name
         self.href = href
 
-        if is_templated is not None:
-            self.templated = is_templated
+        if templated is not None:
+            self.templated = templated
 
-        if media_type is not None:
-            self.type = media_type
+        if type is not None:
+            self.type = type
 
 
 class Embedded(Attr):
@@ -346,7 +350,7 @@ class _SchemaType(type):
                 if not hasattr(value, "name"):
                     value.name = name
 
-                if isinstance(value, Link):
+                if isinstance(value, (Link, Embedded)):
                     curie = getattr(value, "curie", None)
                     if curie is not None:
                         curies.add(curie)
@@ -359,6 +363,7 @@ class _SchemaType(type):
                     href=Attr(),
                     name=Attr(),
                     templated=Attr(required=False),
+                    type=Attr(required=False),
                 ),
                 attr=lambda value: list(curies),
                 required=False,
