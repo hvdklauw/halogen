@@ -179,6 +179,7 @@ class Link(Attr):
 
             attrs = {
                 'templated': templated,
+                'type': type,
             }
 
             class LinkSchema(Schema):
@@ -187,7 +188,7 @@ class Link(Attr):
                 if attrs['templated'] is not None:
                     templated = Attr(attr=lambda value: templated)
 
-                if type is not None:
+                if attrs['type'] is not None:
                     type = Attr(attr=lambda value: type)
 
             attr_type = LinkSchema
